@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+</head>
+
+<body>
+    <div class="container-fluid">
+        <h1>Student</h1>
+        <table class="table" id="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Gender</th>
+                    <th scope="col">Point</th>
+                    <th scope="col"> </th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+
+            </tbody>
+        </table>
+
+        <div class="input-group mb-3">
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="fileInput" value="">
+                <label class="custom-file-label" for="inputGroupFile02">Choose file</label>
+            </div>
+            <div class="input-group-append">
+                <span class="input-group-text" id="save">Save</span>
+            </div>
+        </div>
+        <button type="button" id="updateBtn" class="btn btn-primary">Update</button>
+    </div>
+</body>
+<script>
+   
+    const table = document.getElementById('table');
+    const file = document.getElementById('fileInput');
+    const tableBody = document.getElementById('tbody');
+    const saveBtn = document.getElementById('save');
+    const updateBtn = document.getElementById('updateBtn');
+
+    const handleDisplay = () => {
+        fetch('http://localhost:8080/api').then(res => {
+            if (!res.ok) {
+
+                const messageRow = document.createElement('tr');
+   
+                const cell = document.createElement('td');
+           
+                cell.textContent = 'No students found';
+          
+                cell.colSpan = 5;
+         
+                messageRow.appendChild(cell);
+                tableBody.appendChild(messageRow);
+                throw new Error();
+            }
+            return res.json();
+        }).then(data => {
+            tableBody.innerHTML = '';
+            console.log(data);
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    const newRow = document.createElement('tr');
+                    const cell1 = document.createElement('td');
+                    const cell2 = document.createElement('td');
+                    const cell3 = document.createElement('td');
+                    const cell4 = document.createElement('td');
+                    const cell5 = document.createElement('td');
+
+                    cell1.textContent = item.id
+                    cell2.textContent = item.name;
+                    cell3.textContent = item.gender;
+                    cell4.textContent = item.point;
+                    cell5.textContent = 'X';
+                    cell5.setAttribute('class', 'deleteBtn');
+
+              
+                    cell2.contentEditable = true;
+                    cell3.contentEditable = true;
+                    cell4.contentEditable = true;
+
+                    newRow.appendChild(cell1);
+                    newRow.appendChild(cell2);
+                    newRow.appendChild(cell3);
+                    newRow.appendChild(cell4);
+                    newRow.appendChild(cell5);
+
+                    tableBody.appendChild(newRow);
+                })
+            }
+            const deleteBtn = Array.from(document.getElementsByClassName('deleteBtn'));
+            console.log(deleteBtn);
+
+      
+            deleteBtn.forEach(item => {
+                item.addEventListener('click', handleDelte);
+            })
+
+        }).catch(error => console.log(error));
+    }
+
+    const handleData = () => {
+      
+        const formData = new FormData();
+    
+        if (file.files.length === 0) {
+            console.log('please input file');
+            return;
+        }
+        console.log(file.value);
+        formData.append('file', file.files[0]);
+
+        fetch('http://localhost:8080/api/save', {
+            method: 'POST',
+            body: formData
+        }).then(
+            handleDisplay
+        ).catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+
+    const handlePut = () => {
+        var rows = table.querySelectorAll('tbody tr');
+        let dataPut = [];
+
+        rows.forEach(function (row) {
+            var cells = row.querySelectorAll('td');
+            dataPut.push({
+                id: dataPut.length + 1,
+                name: cells[1].textContent,
+                gender: cells[2].textContent,
+                point: cells[3].textContent
+            });
+            console.log(dataPut);
+        })
+
+        const putData = JSON.stringify(dataPut);
+        fetch('http://localhost:8080/api/update', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: putData
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('success');
+                } else {
+                    console.error('Error:', response.status);
+                }
+            })
+            .catch(error => console.error('Fetch Error:', error))
+    };
+
+    const handleDelte = (event) => {
+        const deleteTarget = event.target;
+        const row = deleteTarget.parentElement;
+
+        var cells = row.querySelectorAll('td');
+        const dataDelete = {
+            id: cells[0].textContent,
+            name: cells[1].textContent,
+            gender: cells[2].textContent,
+            point: cells[3].textContent
+        };
+
+        const deleteData = JSON.stringify(dataDelete);
+        fetch('http://localhost:8080/api/delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: deleteData
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('success');
+                } else {
+                    console.error('Error:', response.status);
+                }
+            })
+            .catch(error => console.error('Fetch Error:', error))
+
+        handleDisplay()
+    };
+
+
+    handleDisplay();
+    saveBtn.addEventListener('click', handleData);
+    updateBtn.addEventListener('click', handlePut);
+</script>
+
+</html>
